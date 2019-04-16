@@ -7,11 +7,10 @@ Description: Header for USART library
 #ifndef USART_lib
 #define USART_lib
 
-#define F_CPU 16000000
-#define BUFF_LEN 100
+//definitions and inclusions
+#define BUFF_LEN 128
 
 #include <avr/io.h>
-#include <util/delay.h>
 #include <avr/interrupt.h>
 
 //Function Declarations
