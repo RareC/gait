@@ -1,0 +1,49 @@
+/*###################################################################################################################
+Created: 16/04/19
+Author: cwl36@bath.ac.uk
+Description: USART library
+####################################################################################################################*/ 
+
+#define F_CPU 16000000
+#define BUFF_LEN 100
+
+#include "USART_lib.h"
+#include <avr/io.h>
+#include <util/delay.h>
+#include <avr/interrupt.h>
+
+volatile extern uint8_t rx_buff[BUFF_LEN];		//volatile for use in ISR, preloaded with string so something is sent by default
+volatile extern uint8_t rx_counter;					//counter for how many bytes have been received
+
+ISR(USART_RX_vect){
+	rx_buff[rx_counter]=UDR0;
+	rx_counter++;
+	for (uint8_t i = rx_counter; i < BUFF_LEN; i++){
+		rx_buff[i] = '\0';
+	}
+} 
+
+//Initialize UART
+void UART_INIT (){
+	UBRR0H = 0x00;									//For 16 MHz clock & 9600 baud...
+	UBRR0L = 0x67;									//UBBR = 103d = 0000 0110 0111
+	UCSR0B|= (1<<RXCIE0)|(1<<RXEN0)|(1<<TXEN0);		//Receive interrupt + RX/TX enable
+	UCSR0C|= (1<<UCSZ01)|(1<<UCSZ00);				//8 bit data, 1 stop bit and no parity
+}
+
+//Send 1 byte of data
+void UART_TX (uint8_t data){
+	while (!( UCSR0A & (1<<UDRE0)));			//wait until register is free
+	UDR0 = data;								//load data in the register
+	while (!(UCSR0A & (1<<TXC0)));				//wait until data has been transmitted
+}
+
+//Send multiple bytes
+void UART_TX_STR (uint8_t *str){
+	uint8_t i=0;
+	while (*(str+i))
+	{
+		UART_TX(*(str+i));
+		i++;
+	}
+}
