@@ -1,6 +1,10 @@
 #ignore Atmel Studio Files
-*.componentinfo
-.cproj
+*.componentinfo.xml
 
-#ignore Atmel Debug Folder
+*.cproj
+
+*.atsln
+
+#ignore Atmel Folders
 Debug/
+.vs/
