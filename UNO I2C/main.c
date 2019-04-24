@@ -4,63 +4,90 @@ Author: cwl36@bath.ac.uk
 Description: I2C test code
 ####################################################################################################################*/
 
+//I2C device addresses
+#define LSM_READ 0xD7
+#define LSM_WRITE 0xD6
+
+#define F_CPU 16000000
+
+#include "USART_lib.h"
+#include "I2C_lib.h"
 #include <avr/io.h>
+#include <util/delay.h>
 
-void I2Cinit();
-void I2Cstart();
-void I2Cstop();
-void I2Cwrite(uint8_t);
-uint8_t I2Cread();
-uint8_t I2Cstatuscode();
+//LSM functions
+uint8_t LSMreadbyte();
 
-//#define DEVICE_READ_ADDR
-//#define DEVICE_WRITE_ADDR
+volatile uint8_t rx_counter = 0;
+volatile uint8_t rx_buff[BUFF_LEN];
+uint8_t buffer [2];
 
 int main(void){
+	UART_INIT();
+	I2Cinit();
     while (1) {
-		//init
-		//start
-		//read
-		//stop
+		uint8_t data = LSMreadbyte();
+		UART_TX_STR("DATA: ");
+		itoa(data,buffer,16);
+		UART_TX_STR(buffer);
+		//UART_TX(data);
+		UART_TX_STR("\n \r");
+		_delay_ms(1000);
     }
 }
 
-void I2Cinit(){	
-	TWBR = 0x0C;		//SCL = F_CPU/(16 + 2(TWBR)*(Prescaler))
-	TWCR = (1<<TWEN);   //Enable I2C interface
-}
+uint8_t LSMreadbyte(){
+/*  I2C read process:
+	Master generates Start
+	Master sends slave address , slave returns ACK, check for code 0x18
+	Master sends register (MW), slave returns ACK, check for code 0x28
+	Master generates start repeat (MW)
+	Master sends slave address (MR), device returns ACK, check for code 0x40
+	Master reads data (MR) from device, returns NACK, check for code 0x58
+	Master generates Stop   
+*/
 
-//TWCR states straight out of atmega328p data sheet
-void I2Cstart(){
-	//Clears interrupt flag, send start condition and enables I2C interface
-	TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
-	//wait for TWINT flag to be 0 (set)
-	while ((TWCR & (1<<TWINT)) == 0);
-}
+	I2Cstart();
 
-void I2Cstop(void){
-	//Clears interrupt flag, send stop condition and enables I2C interface
-	TWCR = (1<<TWINT)|(1<<TWSTO)|(1<<TWEN);
-}
-
-void I2Cwrite(uint8_t data){
-	TWDR = data;
-	TWCR = (1<<TWINT)|(1<<TWEN);
-	//wait for TWINT flag to be set to 0 (set)
-	while ((TWCR & (1<<TWINT)) == 0);
-}
-
-uint8_t I2Cread(){
-	//Clears interrupt flag, enables I2C interface and sends ACK
-	TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWEA);
-	//wait for TWINT flag to be 0 (set)
-	while ((TWCR & (1<<TWINT)) == 0);
-	return TWDR;
-}
-
-uint8_t I2Cstatuscode(){
-	uint8_t status;
-	//mask pre-scaler bits we don't need and get status code
-	status = TWSR & 0xF8;
-	return status;
+	//SLA+W
+	I2Cwrite(LSM_WRITE);
+		
+	//check for Slave ACK
+	uint8_t status = I2Cstatuscode();
+	if (status != 0x18){
+		itoa(status,buffer,16);
+		UART_TX_STR(buffer);
+		UART_TX_STR("NO ACK");
+		while (1);
+	}
+	//choose register to read. WHO_AM_I_G (0x0F) should return 0x69 / 105d
+	I2Cwrite(0x0F);
+		
+	//check for Slave ACK
+	status = I2Cstatuscode();
+	if (status != 0x28){
+		itoa(status,buffer,16);
+		UART_TX_STR(buffer);
+	}
+			
+	//repeated start
+	I2Cstart();
+		
+	//SLA+R
+	I2Cwrite(LSM_READ);
+		
+	//check for Slave ACK
+	status = I2Cstatuscode();
+	if (status != 0x40){
+		itoa(status,buffer,16);
+		UART_TX_STR(buffer);
+	}
+		
+	//read data
+	uint8_t byte = I2CreadNMAK();
+		
+	//send stop code
+	I2Cstop();
+	
+	return byte;
 }
