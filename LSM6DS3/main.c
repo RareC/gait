@@ -7,13 +7,30 @@ Description: LSM6DS3 code
 #define LSM_READ 0xD7
 #define LSM_WRITE 0xD6
 
-//Register addresses
+//Control register addresses
 #define FIFO_CTRL2 0x07
 #define CTRL1_XL 0x10
+#define CTRL2_G 0x11
 #define CTRL6_C 0x15
+#define CTRL7_G 0x16
 #define CTRL10_C 0x19
 #define FUNC_SRC 0x53
 #define TAP_CFG 0x58
+#define MD1_CFG 0x5E
+
+//Output data register addresses
+#define GYRO_X_LOW 0x22
+#define GYRO_X_HIGH 0x23
+#define GYRO_Y_LOW 0x24
+#define GYRO_Y_HIGH 0x25
+#define GYRO_Z_LOW 0x26
+#define GYRO_Z_HIGH 0x27
+#define ACCEL_X_LOW 0x28
+#define ACCEL_X_HIGH 0x29
+#define ACCEL_Y_LOW 0x2A
+#define ACCEL_Y_HIGH 0x2B
+#define ACCEL_Z_LOW 0x2C
+#define ACCEL_Z_HIGH 0x2D
 
 #define F_CPU 16000000
 
@@ -44,12 +61,14 @@ int main(void){
 	UART_INIT();
     LSMinit();
 	
+	uint8_t *newline = "\r\n";
+	
 	sei();
 	PCMSK0 |= (1<<PCINT0);
 	PCICR |= (1<<PCIE0);
 	
     while (1){
-		//step detection
+		/*//step detection
 		uint8_t stepL = LSMreadbyte(0x4B);
 		uint8_t stepH = LSMreadbyte(0x4C);
 		uint16_t step = (stepH<<8) + stepL;
@@ -66,7 +85,46 @@ int main(void){
 			UART_TX_STR("No Tilt Detected\n\r");
 		
 		tilt = 0;
-		_delay_ms(4000);
+		_delay_ms(4000); */
+		
+		
+		_delay_ms(100);
+		
+		uint8_t GyroX = LSMreadbyte(GYRO_X_HIGH);
+		uint8_t GyroY = LSMreadbyte(GYRO_Y_HIGH);
+		uint8_t GyroZ = LSMreadbyte(GYRO_Z_HIGH);
+		
+		uint8_t XlX = LSMreadbyte(ACCEL_X_HIGH);
+		uint8_t XlY = LSMreadbyte(ACCEL_Y_HIGH);
+		uint8_t XlZ = LSMreadbyte(ACCEL_Z_HIGH);
+		
+		uint8_t buff [16];
+		itoa(GyroX,buff,2);
+		UART_TX_STR(buff);
+		UART_TX_STR(newline);
+		
+		itoa(GyroY,buff,2);
+		UART_TX_STR(buff);
+		UART_TX_STR(newline);
+
+		itoa(GyroZ,buff,2);
+		UART_TX_STR(buff);
+		UART_TX_STR(newline);
+		
+		itoa(XlX,buff,2);
+		UART_TX_STR(buff);
+		UART_TX_STR(newline);
+		
+		itoa(XlY,buff,2);
+		UART_TX_STR(buff);
+		UART_TX_STR(newline);
+
+		itoa(XlZ,buff,2);
+		UART_TX_STR(buff);
+		UART_TX_STR(newline);
+		
+		UART_TX_STR(newline);
+		
     }
 }
 
@@ -175,11 +233,15 @@ void LSMwritebyte(uint8_t reg, uint8_t data){
 }
 
 void LSMinit(){
-	//Enable step counter
-	LSMwritebyte(FIFO_CTRL2, 0xC0);
 	
-	//Set accelerometer data rate and accelerometer scale
-	LSMwritebyte(CTRL1_XL, 0x20);
+	//Set accelerometer data rate @208Hz
+	LSMwritebyte(CTRL1_XL, 0x50);
+	
+	//Set gyro data rate @208Hz
+	LSMwritebyte(CTRL2_G, 0x50);
+	
+	//Enable gyro low power mode
+	LSMwritebyte(CTRL7_G, 0x80);	
 	
 	//Enable accelerometer low power mode
 	LSMwritebyte(CTRL6_C, 0x10);
@@ -191,5 +253,5 @@ void LSMinit(){
 	LSMwritebyte(TAP_CFG, 0x60);
 	
 	//send tilt event on INT1 pin
-	LSMwritebyte(0x5E, 0x02);
+	LSMwritebyte(MD1_CFG , 0x02);
 }
