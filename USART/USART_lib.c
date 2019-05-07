@@ -34,10 +34,29 @@ void UART_TX (uint8_t data){
 }
 
 //Send multiple bytes
-void UART_TX_STR (uint8_t *str){
+void UART_TX_STR (char *str){
 	uint8_t i = 0;
 	while (*(str+i)){							//iterate over all data in the string
 		UART_TX(*(str+i));
 		i++;
 	}
+}
+
+//Newline and carriage return 
+void UART_TX_NL(){
+	UART_TX_STR("\n\r");
+}
+
+//Send 8-bit integer value
+void UART_TX_UINT8 (uint8_t val, uint8_t base){
+	char buff [8];
+	itoa (val, buff, base);
+	UART_TX_STR (buff);
+}
+
+//Send 16-bit integer value
+void UART_TX_UINT16 (uint16_t val, uint8_t base){
+	char buff [16];
+	itoa (val, buff, base);
+	UART_TX_STR (buff);
 }

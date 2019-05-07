@@ -13,3 +13,7 @@
 #ignore Atmel Folders
 Debug/
 .vs/
+
+#ignore personal libraries
+*_lib.c
+*_lib.h
