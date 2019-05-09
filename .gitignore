@@ -7,6 +7,7 @@
 >>>>>>> 2afd4755ae022d64aa9ace77e2511625fb145bc7
 
 *.cproj
+*.cppproj
 
 *.atsln
 

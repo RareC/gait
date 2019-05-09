@@ -6,7 +6,8 @@ Description: USART library
 
 #include "USART_lib.h"
 
-//THESE REQUIRE DECLARING IN THE PROGRAM THEY ARE USED IN, EVEN IF NOT USED
+//THESE REQUIRE DECLARING IN THE PROGRAM THEY ARE USED IN, EVEN IF NOT USED.
+//Comment out this and the ISR if using an Arduino Library as USART_RX_vect will be defined already
 volatile extern uint8_t rx_buff[BUFF_LEN];			//volatile for use in ISR and extern so can be set by another file
 volatile extern uint8_t rx_counter;					//counter for how many bytes have been received
 
